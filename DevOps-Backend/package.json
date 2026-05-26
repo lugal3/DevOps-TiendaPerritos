@@ -1,5 +1,6 @@
 {
-  "name": "tienda-perritos-backend",
+  "name": "tienda-perritos-backend",  
+  
   "version": "1.0.0",
   "description": "API backend para tienda de alimentos para perritos",
   "main": "server.js",
