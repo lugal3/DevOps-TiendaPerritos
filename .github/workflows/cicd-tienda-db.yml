@@ -1,0 +1,54 @@
+name: CI/CD DB Tienda Perritos
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'DevOps-DB/**'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v3
+
+      - name: Configurar credenciales de AWS
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Iniciar sesión en Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Construir y subir imagen a ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: tienda-db
+          IMAGE_TAG: latest
+        working-directory: ./DevOps-DB
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Desplegar en EC2 via AWS SSM
+        env:
+          INSTANCE_ID: ${{ secrets.EC2_DB_INSTANCE_ID }}
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+        run: |
+          aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --parameters commands=[ \
+              "aws ecr get-login-password --region us-east-1 | sudo docker login --username AWS --password-stdin $ECR_REGISTRY", \
+              "sudo docker pull $ECR_REGISTRY/tienda-db:latest", \
+              "sudo docker stop tienda-db || true", \
+              "sudo docker rm tienda-db || true", \
+              "sudo docker run -d --name tienda-db -p 3306:3306 -v dbdata:/var/lib/mysql $ECR_REGISTRY/tienda-db:latest" \
+            ] \
+            --comment "Despliegue automatizado de DB por GitHub Actions"
