@@ -42,14 +42,4 @@ jobs:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
           DB_HOST: ${{ secrets.DB_HOST_IP }}
         run: |
-          aws ssm send-command \
-            --instance-ids "$INSTANCE_ID" \
-            --document-name "AWS-RunShellScript" \
-            --parameters commands=[ \
-              "aws ecr get-login-password --region us-east-1 | sudo docker login --username AWS --password-stdin $ECR_REGISTRY", \
-              "sudo docker pull $ECR_REGISTRY/tienda-backend:latest", \
-              "sudo docker stop tienda-backend || true", \
-              "sudo docker rm tienda-backend || true", \
-              "sudo docker run -d --name tienda-backend -p 3001:3001 -e DB_HOST=$DB_HOST -e DB_USER=root -e DB_PASSWORD=admin123 -e DB_NAME=tienda_perritos -e DB_PORT=3306 $ECR_REGISTRY/tienda-backend:latest" \
-            ] \
-            --comment "Despliegue automatizado de Backend por GitHub Actions"
+          aws ssm send-command --instance-ids "$INSTANCE_ID" --document-name "AWS-RunShellScript" --comment "Despliegue automatizado de Backend por GitHub Actions" --parameters commands=["aws ecr get-login-password --region us-east-1 | sudo docker login --username AWS --password-stdin $ECR_REGISTRY","sudo docker pull $ECR_REGISTRY/tienda-backend:latest","sudo docker stop tienda-backend || true","sudo docker rm tienda-backend || true","sudo docker run -d --name tienda-backend -p 3001:3001 -e DB_HOST=$DB_HOST -e DB_USER=root -e DB_PASSWORD=admin123 -e DB_NAME=tienda_perritos -e DB_PORT=3306 $ECR_REGISTRY/tienda-backend:latest"]

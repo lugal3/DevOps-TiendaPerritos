@@ -41,14 +41,4 @@ jobs:
           INSTANCE_ID: ${{ secrets.EC2_DB_INSTANCE_ID }}
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
         run: |
-          aws ssm send-command \
-            --instance-ids "$INSTANCE_ID" \
-            --document-name "AWS-RunShellScript" \
-            --parameters commands=[ \
-              "aws ecr get-login-password --region us-east-1 | sudo docker login --username AWS --password-stdin $ECR_REGISTRY", \
-              "sudo docker pull $ECR_REGISTRY/tienda-db:latest", \
-              "sudo docker stop tienda-db || true", \
-              "sudo docker rm tienda-db || true", \
-              "sudo docker run -d --name tienda-db -p 3306:3306 -v dbdata:/var/lib/mysql $ECR_REGISTRY/tienda-db:latest" \
-            ] \
-            --comment "Despliegue automatizado de DB por GitHub Actions"
+          aws ssm send-command --instance-ids "$INSTANCE_ID" --document-name "AWS-RunShellScript" --comment "Despliegue automatizado de DB por GitHub Actions" --parameters commands=["aws ecr get-login-password --region us-east-1 | sudo docker login --username AWS --password-stdin $ECR_REGISTRY","sudo docker pull $ECR_REGISTRY/tienda-db:latest","sudo docker stop tienda-db || true","sudo docker rm tienda-db || true","sudo docker run -d --name tienda-db -p 3306:3306 -v dbdata:/var/lib/mysql $ECR_REGISTRY/tienda-db:latest"]
